@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from tqdm import tqdm
+from scipy.signal import fftconvolve
+import time
 
 # Huygen's Diffraction PSF
 def point_source(x, y, z, c, wvl):
@@ -74,9 +76,8 @@ def rs_psf_fftconv(x, y, z, wvl, c, pad):
     for k in range(len(z)):
         for l in range(len(wvl)):
             kernel = rs_kernel(xx, yy, z[k], wvl[l])
-            psf[:,:,k,l] = fft_convolve2d(c[:,:,l], kernel, pad)
+            psf[:,:,k,l] = fftconvolve(c[:,:,l], kernel, mode="same")
     return psf/np.max(np.abs(psf))
-
 
 # Fresnel diffraction integral calculated using FFT
 def fresnel_fft(x, y, z, wvl, c):
@@ -106,7 +107,27 @@ def fft_convolve2d(x, y, pad=0):
         xf = np.fft.fftshift(np.fft.fft2(xp))
         yf = np.zeros((np.shape(y)[0]+2*pad, np.shape(y)[1]+2*pad), dtype="complex")
         yf = np.fft.fftshift(np.fft.fft2(yp))
-        return np.fft.fftshift(np.fft.ifft2(xf * yf))[pad:-pad, pad:-pad]
+        return np.fft.fftshift(np.fft.ifft2(xf * yf))[pad-1:-pad-1, pad-1:-pad-1]
+    else:
+        xf = np.fft.fft2(x)
+        yf = np.fft.fft2(y)
+        return np.fft.fftshift(np.fft.ifft2(xf * yf))
+
+def fft_convolve2d_full(x, y, pad=0):
+    n_conv = len(x) + len(y) - 1 - (len(y)%2 == 0)
+    n_pad_x = (n_conv - len(x))//2
+    n_pad_y = (n_conv - len(y))//2
+    x = np.pad(x, n_pad_x)
+    y = np.pad(y, n_pad_y)
+    if pad:
+        xp = np.zeros((np.shape(x)[0]+2*pad, np.shape(x)[1]+2*pad), dtype="complex")
+        xp[pad:-pad, pad:-pad] = x
+        yp = np.zeros((np.shape(x)[0]+2*pad, np.shape(x)[1]+2*pad), dtype="complex")
+        yp[pad:-pad, pad:-pad] = y
+        xf = np.fft.fftshift(np.fft.fft2(xp))
+        yf = np.zeros((np.shape(y)[0]+2*pad, np.shape(y)[1]+2*pad), dtype="complex")
+        yf = np.fft.fftshift(np.fft.fft2(yp))
+        return np.fft.fftshift(np.fft.ifft2(xf * yf))[pad-1:-pad-1, pad-1:-pad-1]
     else:
         xf = np.fft.fft2(x)
         yf = np.fft.fft2(y)
@@ -116,45 +137,58 @@ def fft_convolve2d(x, y, pad=0):
 def focus_phase(x, y, focl, wvl_cen, cen=(0,0)):
     c_foc = np.empty((len(x), len(y), len(wvl_cen)), dtype="complex")
     xx, yy = np.meshgrid(x, y)
-    mask = (xx**2 + yy**2 <= np.max(x)**2)
     for i in range(len(wvl_cen)):
         phi_foc = 2*np.pi/wvl_cen[i] * (focl - np.sqrt(focl**2 + (xx-cen[0])**2 + (yy-cen[1])**2))
-        c_foc[:,:,i] = mask*np.exp(1j*phi_foc*mask)
+        c_foc[:,:,i] = np.exp(1j*phi_foc)
     return c_foc
 
-#%%
+
 if __name__ == "__main__":
-    # parameters
+    #%%
+    # PARAMETERS
+    N = 80
     R = 50 # Lens rad.
     F = 200 # Lens foc.
     z = [F]
     wvl = [0.630, 0.532, 0.467] # R=630nm, G=532nm, and B=467nm.
 
     #%%
-    # Phase linspace
-    xp = np.linspace(-50, 50, 81)
-    x = np.linspace(-5, 5, 41)
+    # CALC RS PSF USING INTEGRAL FOR EACH PIXEL
+    lp = 50
+    ls = 5
+    xp = np.linspace(-lp, lp, N+1) # x-phase
+    xs = np.linspace(-ls, ls, N+1) # x-sensor
     c = focus_phase(xp, xp, F, wvl)
-    psf_rs = rs_psf(x, x, z, wvl, xp, xp, c)
-    #%%
-    # FFT conv. linspace
-    x = np.linspace(-50, 50, 401)
-    c = focus_phase(x, x, F, wvl)
-    psf_rs_fftconv = rs_psf_fftconv(x, x, z, wvl, c, pad=20)
+    t0 = time.time()
+    psf_rs = rs_psf(xs, xs, z, wvl, xp, xp, c)
+    psf_rs = np.abs(psf_rs[:,:,0,:])**2
+    t1 = time.time()
+    print(f"Calc. time = {t1 - t0}s")
 
     #%%
-    # Test
+    # CALC RS PSF USING FFT CONVOLUTION
+    x = np.linspace(-50, 50, 10*N+1)
+    c = focus_phase(x, x, F, wvl)
+    idx = (np.argmin(np.abs(-ls - x)), np.argmin(np.abs(ls - x)))
+    t0 = time.time()
+    psf_rs_fftconv = rs_psf_fftconv(x, x, z, wvl, c, pad=20)
+    psf_rs_fftconv = np.abs(psf_rs_fftconv[idx[0]:idx[1]+1, idx[0]:idx[1]+1, 0, :])**2
+    t1 = time.time()
+    print(f"Calc. time = {t1 - t0}s")
+
+    #%%
+    # COMPARE
     l = 1
-    I1 = np.abs(psf_rs)**2
-    I2 = np.abs(psf_rs_fftconv)**2
     fig, ax = plt.subplots(1,2)
     fig.suptitle("Rayleight Sommerfeld Diffraction PSF")
-    ax[0].imshow(I1[:,:,0,l], vmin=np.min(I1), vmax=np.max(I1))
+    ax[0].imshow(psf_rs[:,:,l], vmin=np.min(psf_rs), vmax=np.max(psf_rs))
     ax[0].title.set_text("Integral for each pixel")
-    ax[1].imshow(I2[179:220,179:220,0,l], vmin=np.min(I2), vmax=np.max(I2))
+    ax[1].imshow(psf_rs_fftconv[:,:,l], vmin=np.min(psf_rs_fftconv), vmax=np.max(psf_rs_fftconv))
     ax[1].title.set_text("FFT Convolution")
     fig.tight_layout()
 
     plt.figure()
     plt.title("Convolution vs integral residuals")
-    plt.imshow(I2[179:220,179:220,0,l] - I1[:,:,0,l]);plt.colorbar()
+    plt.imshow(psf_rs - psf_rs_fftconv);plt.colorbar()
+
+
