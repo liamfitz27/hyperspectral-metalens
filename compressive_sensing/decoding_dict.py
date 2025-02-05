@@ -65,9 +65,8 @@ def decode_dict_convolve(psf_spect, sparse_dict, img_shape):
         decode_dict[:,i] = np.ndarray.flatten(basis_psf_conv)
     return decode_dict
 
-
+#%%
 if __name__ == "__main__":
-    #%%
     # PARAMETERS
     wvl_rgb = np.array([0.8, 1.0, 1.3])
     focl = 80

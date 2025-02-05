@@ -76,7 +76,7 @@ def rs_psf_fftconv(x, y, z, wvl, c, pad):
     for k in range(len(z)):
         for l in range(len(wvl)):
             kernel = rs_kernel(xx, yy, z[k], wvl[l])
-            psf[:,:,k,l] = fftconvolve(c[:,:,l], kernel, mode="same")
+            psf[:,:,k,l] = fft_convolve2d(c[:,:,l], kernel, pad=20)
     return psf/np.max(np.abs(psf))
 
 # Fresnel diffraction integral calculated using FFT
@@ -142,9 +142,8 @@ def focus_phase(x, y, focl, wvl_cen, cen=(0,0)):
         c_foc[:,:,i] = np.exp(1j*phi_foc)
     return c_foc
 
-
+#%%
 if __name__ == "__main__":
-    #%%
     # PARAMETERS
     N = 80
     R = 50 # Lens rad.

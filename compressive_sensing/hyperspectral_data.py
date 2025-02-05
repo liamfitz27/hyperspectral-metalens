@@ -30,8 +30,7 @@ imgs_band_sample = []
 for img in imgs_l:
     img_band_sample = []
     for i in range(np.shape(img)[0]):
-        if i % 50 == 0:
-            img_band_sample.append(img[i])
+        img_band_sample.append(img[i])
     imgs_band_sample.append(img_band_sample)
 imgs = np.array(imgs_band_sample)[:, :-2, :100, :100]
 
@@ -44,6 +43,18 @@ print("Number of bands: ", imgs[0].shape[0])
 print("Image size: ", (N_px, N_px))
 
 #%%
+spect = []
+for img in imgs:
+    for j in range(img.shape[1]):
+        for k in range(img.shape[2]):
+            spect.append(img[:, j, k])
+
+#%%
+# PLOT RANDOM SPECT
+n = np.random.choice(len(spect))
+plt.plot(spect[n][167:])
+
+#%%
 # PLOT RANDOM IMG
 n = np.random.choice(len(imgs))
 band = 0
@@ -53,7 +64,7 @@ plt.imshow(img)
 # %%
 # DICTIONARY LEARNING 
 dict_learner = DictionaryLearning(
-    n_components=500, transform_alpha=0.01, fit_algorithm="cd", transform_algorithm="lasso_cd",
+    n_components=50, transform_alpha=0.01, fit_algorithm="cd", transform_algorithm="lasso_cd",
     random_state=42, verbose=True, max_iter=100, transform_max_iter=10000, positive_dict=False, positive_code=False,
 )
 
