@@ -30,7 +30,7 @@ def phi_matrix(psf_spect):
 
 def phi_pixel_full(psf_spect, conv_shape, i, j):
     psf_shape = np.shape(psf_spect)
-    cen = (psf_shape[0]//2, psf_shape[1]//2)
+    cen = (psf_shape[0]//2-2, psf_shape[1]//2-2)
     phi_ij = np.zeros([*conv_shape, psf_shape[-1]])
     for n in range(conv_shape[0]):
         for m in range(conv_shape[1]):

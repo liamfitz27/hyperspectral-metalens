@@ -77,36 +77,18 @@ xx, yy = np.meshgrid(x, x)
 c0 = focus_phase(x, x, focl, wvl_rgb)
 
 #%%
-psf_spect = rs_psf_fftconv(x, x, [focl], wvl_rgb, c0, pad=20)
-psf_spect = np.abs(psf_spect[:,:,0,:])**2
-phi = phi_matrix_full(psf_spect, psf_spect.shape[:-1])
-
-#%%
-# FULL LINEAR TRANSFORMATION DECODING DICT vs. FFTCONV DECODING DICT (TRANSL INVAR.)
+# COMPARE CALCULATION TIMES AND ACCURACY
 wavelet_dict = DWT_dict_full(len(x), len(wvl_rgb), len(x), type="haar")
 
-# full linear transformation
-decode_dict1 = phi @ wavelet_dict
-xy_shape = np.shape(fftconvolve(c0[:,:,0], c0[:,:,0], mode="full"))
-img_shape = [xy_shape[0]-1, xy_shape[1]-1, len(wvl_rgb)]
-# transl. invar. psf and fftconv
-decode_dict2 = decode_dict_convolve(psf_spect, wavelet_dict, img_shape)
-
-plt.imshow(decode_dict1 - decode_dict2, vmin=-2*decode_dict1.max(), vmax=2*decode_dict1.max())
-plt.colorbar()
-
-#%%
-# COMPARE CALCULATION TIMES AND ACCURACY
-
-# Full linear transform.
-t0 = time.time()
-psf_spect = rs_psf_fftconv(x, x, [focl], wvl_rgb, c0, pad=20)
-psf_spect = np.abs(psf_spect[:,:,0,:])**2
-phi = phi_matrix_full(psf_spect, psf_spect.shape[:-1])
-decode_dict1 = phi @ wavelet_dict
-mc1 = mutual_coherence(decode_dict1)
-t1 = time.time()
-print(f"Full linear transform: {t1 - t0}s")
+# # Full linear transform.
+# t0 = time.time()
+# psf_spect = rs_psf_fftconv(x, x, [focl], wvl_rgb, c0, pad=20)
+# psf_spect = np.abs(psf_spect[:,:,0,:])**2
+# phi = phi_matrix_full(psf_spect, psf_spect.shape[:-1])
+# decode_dict1 = phi @ wavelet_dict
+# mc1 = mutual_coherence(decode_dict1)
+# t1 = time.time()
+# print(f"Full linear transform: {t1 - t0}s")
 
 # FFTconv
 t0 = time.time()
@@ -118,7 +100,13 @@ mc2 = mutual_coherence(decode_dict2)
 t1 = time.time()
 print(f"FFTconv: {t1 - t0}s")
 
-plt.imshow(decode_dict1 - decode_dict2, vmin=-2*decode_dict1.max(), vmax=2*decode_dict1.max())
-plt.colorbar()
+#%%
+plt.figure()
+plt.imshow(decode_dict1)
+plt.figure()
+plt.imshow(decode_dict2)
 
-print(f"Mutual coherence % error: {np.abs((mc1 - mc2)/mc1)*100}")
+# plt.imshow(decode_dict1 - decode_dict2, vmin=-2*decode_dict1.max(), vmax=2*decode_dict1.max())
+# plt.colorbar()
+
+# print(f"Mutual coherence % error: {np.abs((mc1 - mc2)/mc1)*100}")

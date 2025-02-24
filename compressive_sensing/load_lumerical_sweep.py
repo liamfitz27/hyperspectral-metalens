@@ -38,5 +38,5 @@ ax[1].set_ylabel('Length (nm)')
 ax[1].set_aspect(3)
 fig.tight_layout()
 #%%
-save_path = r"metalens-design/jan16_sweep.npz"
+save_path = r"jan16_sweep.npz"
 np.savez(save_path, f=f, lx=lx, Es=Es)

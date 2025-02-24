@@ -14,7 +14,7 @@ import numpy as np
 def rs_kernel(x, y, z, wvl):
     k = 2*jnp.pi/wvl
     r = jnp.sqrt(x**2 + y**2 + z**2)
-    kernel = 1/(1j*wvl) * z/r * jnp.exp(1j*k*r)/r
+    kernel = 1/(2*jnp.pi) * (1/r - 1j*k) * z/r * jnp.exp(1j*k*r)/r
     return kernel
 
 # Rayleigh-Sommerfeld PSF calc using FFT convolution
@@ -28,7 +28,7 @@ def psf_fftconv(x, y, z, wvl, c, pad=0):
                 c_pad = jnp.pad(c[:,:,l], pad)
                 kernel_pad = jnp.pad(kernel, pad)
                 psf_pad = fft_convolve2d(c_pad, kernel_pad, mode="same")
-                psf = psf.at[:,:,k,l].set(psf_pad[pad:-pad, pad:-pad], mode="same")
+                psf = psf.at[:,:,k,l].set(psf_pad[pad:-pad, pad:-pad])
             else:
                 psf = psf.at[:,:,k,l].set(fft_convolve2d(c[:,:,l], kernel, mode="same"))
     return psf
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # PARAMETERS
     N = 80
     R = 50 # Lens rad.
-    F = 200 # Lens foc.
+    F = 100 # Lens foc.
     z = [F]
     wvl = jnp.array([0.467, 0.532, 0.630]) # R=630nm, G=532nm, and B=467nm.
 

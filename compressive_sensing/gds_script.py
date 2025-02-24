@@ -3,13 +3,14 @@ import numpy as np
 import gdstk
 
 # Constants
-px = 0.4  # Period of the structure in um
-py = px
-gds_file_name = "NIR_achrom_test_small.gds"
+gds_file_name = r"designs/NIR_3f_rand0.gds"
 # Load data from text files
-file_path = "NIR_achrom_test_small.npz"
-lx = np.load(file_path)["lx"]/1E-6  # Length of sqauares
+file_path = r"designs/NIR_3f_rand0.npz"
+data = np.load(file_path)
+lx = data["lx"]/1E-6  # Length of sqauares
 ly = lx
+px = data["p"]  # Period of the structure in um
+py = px
 L = px * np.shape(lx)[0]
 
 # Create a new GDS cell

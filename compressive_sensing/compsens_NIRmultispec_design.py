@@ -21,22 +21,19 @@ def gaussian_kernel(x, y, s):
 
 def random_c(x, y, wvl, rfac, s):
     xx, yy = np.meshgrid(x, y)
-    mask = (xx**2 + yy**2 <= x.max()**2)
-    mask = np.reshape(mask, (*np.shape(mask), 1))
     rand = np.random.rand(len(x), len(y), len(wvl))
     rc = np.empty(np.shape(rand))
     for i in range(len(wvl)):
         kernel = gaussian_kernel(xx, yy, s)
         rc[:,:,i] = fft_convolve2d(rand[:,:,i], kernel).real
-    return mask*np.exp(2j*np.pi*rfac*rc/rc.max()*mask)
+    return np.exp(2j*np.pi*rfac*rc/rc.max())
 
 def focus_phase(x, y, focl, wvl_cen, cen=(0,0)):
     c_foc = np.empty((len(x), len(y), len(wvl_cen)), dtype="complex")
     xx, yy = np.meshgrid(x, y)
-    mask = (xx**2 + yy**2 <= np.max(x)**2)
     for i in range(len(wvl_cen)):
         phi_foc = 2*np.pi/wvl_cen[i] * (focl - np.sqrt(focl**2 + (xx-cen[0])**2 + (yy-cen[1])**2))
-        c_foc[:,:,i] = mask*np.exp(1j*phi_foc*mask)
+        c_foc[:,:,i] = np.exp(1j*phi_foc)
     return c_foc
 
 def DCT_dict(n, nf):
@@ -72,7 +69,7 @@ def DWT_dict(n, nf, type):
 
 #%%
 # LOAD SIM DATA
-sweep_data = np.load(r"/Users/liam/hyperspectral-metalens/metalens_design/jan16_sweep.npz")
+sweep_data = np.load(r"jan16_sweep.npz")
 f = sweep_data["f"][0]
 lx = sweep_data["lx"][0]
 
@@ -94,10 +91,10 @@ o = 0 + 0j
 
 focl = 40
 sx = 20
-res = 1/0.4
+px = 0.4
+res = 1/px
 x = np.linspace(-sx, sx, int(2*sx*res))
 xx, yy = np.meshgrid(x, x)
-mask = (xx**2 + yy**2 <= x.max()**2)
 
 # CALC RANDOM PHASE, FIND BEST MATCH FROM DATA
 r = 8 # Amplitude
@@ -116,9 +113,9 @@ for i in range(len(x)):
         c_opt[i,j,:] = c_sweep[:,idx_opt]
         lx_opt[i,j] = lx[idx_opt]
 
-for l in range(len(wvl_rgb)):
-    lx_opt[np.logical_not(mask)] = 0
-    c_opt[:,:,l][np.logical_not(mask)] = 0 + 0j
+# for l in range(len(wvl_rgb)):
+#     lx_opt[np.logical_not(mask)] = 0
+#     c_opt[:,:,l][np.logical_not(mask)] = 0 + 0j
 
 #%%
 # PLOT PHASES, PSFs
@@ -191,6 +188,11 @@ img_decode = np.reshape(img_decode, (len(x), len(x), 3))
 
 plt.figure()
 plt.imshow(img_decode/img_decode.max())
+
+#%%
+# SAVE DESIGN
+filename = r"designs/NIR_3f_rand0.npz"
+np.savez(filename, lx=lx_opt, wvl=wvl_rgb, p=px, h=0.7)
 
 #%%
 # PLOT DESIGN

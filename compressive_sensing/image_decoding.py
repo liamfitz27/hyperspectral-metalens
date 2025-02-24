@@ -27,7 +27,7 @@ def compressive_sense_img(actual_img, psf_spect, sparse_dict):
     # Reshape img
     nwvl = psf_spect.shape[-1]
     sensor_img =np.reshape(sensor_img, np.shape(actual_img_pad)[:-1])
-    img_decode = np.reshape(img_decode, np.shape(actual_img_pad))
+    img_decode = np.reshape(img_decode, np.shape(actual_img_pad))[npad[0]//2:-npad[0]//2, npad[0]//2:-npad[0]//2, :]
     return sensor_img, img_decode
 
 

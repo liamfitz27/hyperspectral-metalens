@@ -10,11 +10,11 @@ import time
 def rs_kernel(x, y, z, wvl):
     k = 2*np.pi/wvl
     r = np.sqrt(x**2 + y**2 + z**2)
-    kernel = 1/(1j*wvl) * z/r * np.exp(1j*k*r)/r
+    kernel = 1/(2*np.pi) * (1/r - 1j*k) * z/r * np.exp(1j*k*r)/r
     return kernel
 
 # Rayleigh-Sommerfeld PSF calc using FFT convolution
-def psf_fftconv(x, y, z, wvl, c, pad=2):
+def psf_fftconv(x, y, z, wvl, c, pad=0):
     psf = np.zeros((len(x), len(y), len(z), len(wvl)), dtype="complex")
     xx, yy = np.meshgrid(x, y)
     for k in range(len(z)):
